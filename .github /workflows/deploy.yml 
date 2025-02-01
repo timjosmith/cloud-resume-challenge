@@ -1,9 +1,9 @@
-name: Deploy CloudFormation Stack
+name: Deploy CloudFormation Stack to Staging
 
 on:
   push:
     branches:
-      - main  # Triggers deployment when changes are pushed to main
+      - staging  # Triggers deployment when changes are pushed to the staging branch
 
 jobs:
   deploy:
@@ -22,15 +22,15 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: arn:aws:iam::401907937551:role/OIDC_practice_cicd_pipeline  # Replace with your IAM role ARN
-          aws-region: eu-west-2  # Adjust to your AWS region
+          aws-region: eu-west-1  # Adjust to your AWS region
 
       # Step 3: Validate CloudFormation template
       - name: Validate CloudFormation Template
         run: |
           aws cloudformation validate-template --template-body file://cloudformation.yaml
 
-      # Step 4: Deploy CloudFormation stack
-      - name: Deploy CloudFormation Stack
+      # Step 4: Deploy CloudFormation stack to staging
+      - name: Deploy CloudFormation Stack (Staging)
         run: |
           aws cloudformation deploy \
             --stack-name staging-cloudfront-stack \
