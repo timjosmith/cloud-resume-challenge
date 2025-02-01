@@ -22,7 +22,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: arn:aws:iam::401907937551:role/OIDC_practice_cicd_pipeline  # Replace with your IAM role ARN
-          aws-region: eu-west-1  # Adjust to your AWS region
+          aws-region: eu-west-2  # Adjust to your AWS region
 
       # Step 3: Validate CloudFormation template
       - name: Validate CloudFormation Template
