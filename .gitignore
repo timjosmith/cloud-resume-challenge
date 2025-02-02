@@ -1,0 +1,52 @@
+# Ignore Python compiled file
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ignore virtual environments
+venv/
+env/
+.venv/
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# Ignore PyCharm project files
+.idea/
+*.iml
+
+# Ignore log and cache files
+logs/
+*.log
+*.cache
+*.pytest_cache/
+
+# Ignore environment variables and secrets
+.env
+*.secrets
+
+# Ignore Terraform files (if used for AWS infrastructure)
+.terraform/
+terraform.tfstate*
+*.tfvars
+
+# Ignore CloudFormation temp files
+*.yaml.template
+.cloudformation/
+
+# Ignore AWS CLI credentials
+.aws/
+
+# Ignore deployment build artifacts
+build/
+dist/
+*.egg-info/
+
+# Ignore AWS Lambda dependencies (if used)
+package/
+.zip
+
+# Ignore temporary files
+tmp/
+*.bak
