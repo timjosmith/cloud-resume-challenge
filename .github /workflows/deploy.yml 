@@ -1,7 +1,7 @@
 name: Deploy CloudFormation Stack to Staging
 
 on:
-  workflow_dispatch:  # Allows manual triggering
+  push:
     branches:
       - staging  # Triggers deployment when changes are pushed to the staging branch
 
