@@ -1,4 +1,4 @@
-name: Deploy CloudFormation Stack to Staging Branch
+name: Deploy CloudFormation Stack to Staging
 
 on:
   push:
