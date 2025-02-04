@@ -3,7 +3,7 @@ name: Test Deploy CloudFormation Stack to Main
 on:
   push:
     branches:
-      - staging  # Triggers deployment when changes are pushed to the staging branch
+      - main  # Triggers deployment when changes are pushed to the staging branch
 
 jobs:
   deploy:
