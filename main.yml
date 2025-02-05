@@ -26,15 +26,13 @@ Resources:
         - DomainName: resume.staging.com
           HostedZoneId: Z07023503P1PJJX3TKC0  # Replace with actual Hosted Zone ID
 
-  CertificateValidationRecord:
-    Type: AWS::Route53::RecordSet
+  CertificateValidation:
+    Type: AWS::CertificateManager::CertificateValidation
     Properties:
-      HostedZoneId: Z07023503P1PJJX3TKC0  # Ensure this is the correct Hosted Zone ID
-      Name: !GetAtt SSLCertificate.DomainValidationOptions.0.ResourceRecord.Name
-      Type: !GetAtt SSLCertificate.DomainValidationOptions.0.ResourceRecord.Type
-      TTL: 300
-      ResourceRecords:
-        - !GetAtt SSLCertificate.DomainValidationOptions.0.ResourceRecord.Value
+      CertificateArn: !Ref SSLCertificate
+      DomainValidationOptions:
+        - DomainName: resume.staging.com
+          HostedZoneId: Z07023503P1PJJX3TKC0
 
   CloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
