@@ -26,14 +26,6 @@ Resources:
         - DomainName: resume.staging.com
           HostedZoneId: Z07023503P1PJJX3TKC0  # Replace with actual Hosted Zone ID
 
-  CertificateValidation:
-    Type: AWS::CertificateManager::CertificateValidation
-    Properties:
-      CertificateArn: !Ref SSLCertificate
-      DomainValidationOptions:
-        - DomainName: resume.staging.com
-          HostedZoneId: Z07023503P1PJJX3TKC0
-
   CloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
     Properties:
