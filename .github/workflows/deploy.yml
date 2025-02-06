@@ -34,6 +34,6 @@ jobs:
         run: |
           aws cloudformation deploy \
             --stack-name staging-cloudfront-stack \
-            --template-file cloudformation.yaml \
+            --template-file main.yml \
             --capabilities CAPABILITY_NAMED_IAM \
             --parameter-overrides DomainName=resume.staging.com
