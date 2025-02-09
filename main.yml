@@ -4,6 +4,7 @@ Description: CloudFormation Template for Staging S3, SSL Certificate, Route 53, 
 Resources:
   S3Bucket:
     Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
     Properties:
       BucketName: resume.staging.com
       WebsiteConfiguration:
@@ -17,4 +18,50 @@ Resources:
         - Key: Environment
           Value: Staging
 
+  SSLCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: resume.staging.com
+      ValidationMethod: DNS
+      DomainValidationOptions:
+        - DomainName: resume.staging.com
+          HostedZoneId: Z07023503P1PJJX3TKC0  # Replace with actual Hosted Zone ID
 
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Origins:
+          - Id: S3Origin
+            DomainName: !GetAtt S3Bucket.DomainName
+            S3OriginConfig: {}
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods:
+            - GET
+            - HEAD
+          CachedMethods:
+            - GET
+            - HEAD
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: "none"
+          MinTTL: 0
+          DefaultTTL: 86400
+          MaxTTL: 31536000
+        ViewerCertificate:
+          AcmCertificateArn: !Ref SSLCertificate
+          SslSupportMethod: sni-only
+        Aliases:
+          - resume.staging.com
+
+Outputs:
+  StagingBucketName:
+    Description: Name of the S3 bucket for staging
+    Value: !Ref S3Bucket
+
+  CloudFrontDomain:
+    Description: CloudFront Distribution Domain Name
+    Value: !GetAtt CloudFrontDistribution.DomainName
