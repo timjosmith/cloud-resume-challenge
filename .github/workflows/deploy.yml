@@ -1,5 +1,4 @@
-name: Test Deploy CloudFormation Stack to Main Branch
-
+name: Test Deploy CloudFormation Stack to Main
 on:
   push:
     branches:
