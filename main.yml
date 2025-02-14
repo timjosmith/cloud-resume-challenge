@@ -18,14 +18,15 @@ Resources:
         - Key: Environment
           Value: Staging
 
+Resources:
   SSLCertificate:
     Type: AWS::CertificateManager::Certificate
     Properties:
-      DomainName: resume.staging.com
+      DomainName: "*.timjosmith.com"
       ValidationMethod: DNS
       DomainValidationOptions:
-        - DomainName: resume.staging.com
-          HostedZoneId: Z07023503P1PJJX3TKC0  # Replace with actual Hosted Zone ID
+        - DomainName: "*.timjosmith.com"
+          HostedZoneId: Z07023503P1PJJX3TKC0  # Existing Route 53 Hosted Zone
 
   CloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
