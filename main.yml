@@ -6,9 +6,7 @@ Resources:
     Type: AWS::S3::Bucket
     DeletionPolicy: Retain
     Properties:
-      BucketName: resume.staging.com
-      WebsiteConfiguration:
-        IndexDocument: index.html
+      BucketName: resume-staging-com  # ✅ Use dashes instead of dots
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: false
@@ -17,6 +15,7 @@ Resources:
       Tags:
         - Key: Environment
           Value: Staging
+
   SSLCertificate:
     Type: AWS::CertificateManager::Certificate
     Properties:
@@ -26,15 +25,23 @@ Resources:
         - DomainName: "*.timjosmith.com"
           HostedZoneId: Z07023503P1PJJX3TKC0  # Existing Route 53 Hosted Zone
 
+  CloudFrontOriginAccessIdentity:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: "Access to S3 bucket via CloudFront"
+
   CloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
+    DependsOn: S3Bucket
     Properties:
       DistributionConfig:
         Enabled: true
         Origins:
           - Id: S3Origin
-            DomainName: !GetAtt S3Bucket.WebsiteURL
-            S3OriginConfig: {}
+            DomainName: !GetAtt S3Bucket.RegionalDomainName  # ✅ Use RegionalDomainName for private S3
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}"
         DefaultCacheBehavior:
           TargetOriginId: S3Origin
           ViewerProtocolPolicy: redirect-to-https
@@ -56,6 +63,22 @@ Resources:
           SslSupportMethod: sni-only
         Aliases:
           - resume.staging.com
+
+  S3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: "arn:aws:iam::401907937551:role/OIDC_practice_cicd_pipeline"  # ✅ Replace with your actual OIDC IAM role ARN
+            Action: "s3:GetObject"
+            Resource: !Sub "arn:aws:s3:::${S3Bucket}/*"
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}"
 
 Outputs:
   StagingBucketName:
