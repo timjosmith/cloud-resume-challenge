@@ -1,36 +1,90 @@
-name: Test Deploy CloudFormation Stack to Main
+name: Deploy CloudFormation Stack to Main
+
 on:
   push:
     branches:
-      - main  # Triggers deployment when changes are pushed to the staging branch
+      - main  # Triggers deployment when changes are pushed to the main branch
 
 jobs:
-  deploy:
+  check-acm:
+    runs-on: ubuntu-latest
+    outputs:
+      certificate_exists: ${{ steps.check.outputs.certificate_exists }}
+    steps:
+      - name: Configure AWS Credentials (us-east-1)
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-region: us-east-1
+
+      - name: Check if ACM Certificate Exists
+        id: check
+        run: |
+          CERTIFICATE_ARN=$(aws acm list-certificates --region us-east-1 --query "CertificateSummaryList[?DomainName=='*.timjosmith.com'].CertificateArn" --output text)
+          if [[ -z "$CERTIFICATE_ARN" ]]; then
+            echo "certificate_exists=false" >> $GITHUB_ENV
+          else
+            echo "certificate_exists=true" >> $GITHUB_ENV
+          fi
+
+  deploy-acm:
+    needs: check-acm
+    if: ${{ env.certificate_exists == 'false' }}  # Deploy only if ACM is missing
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS Credentials (us-east-1)
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-region: us-east-1
+
+      - name: Deploy ACM Certificate
+        run: |
+          echo "Deploying ACM certificate..."
+          aws cloudformation deploy \
+            --template-file acm.yml \
+            --stack-name acm-stack \
+            --region us-east-1
+
+      - name: Wait for ACM Validation
+        run: |
+          echo "Waiting for ACM certificate validation..."
+          CERTIFICATE_ARN=$(aws acm list-certificates --region us-east-1 --query "CertificateSummaryList[?DomainName=='*.timjosmith.com'].CertificateArn" --output text)
+          while [[ $(aws acm describe-certificate --certificate-arn "$CERTIFICATE_ARN" --region us-east-1 --query "Certificate.Status" --output text) != "ISSUED" ]]; do
+            echo "Still waiting for validation..."
+            sleep 30
+          done
+          echo "Certificate validated!"
+
+  validate-cloudformation:
+    needs: [check-acm, deploy-acm]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS Credentials (eu-west-2)
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-region: eu-west-2  # Adjust to your AWS region
+
+      - name: Validate CloudFormation Template
+        run: |
+          echo "Validating CloudFormation template..."
+          aws cloudformation validate-template --template-body file://main.yml
+
+  deploy-cloudfront:
+    needs: validate-cloudformation  # Ensure validation passes before deployment
     runs-on: ubuntu-latest
     permissions:
       id-token: write  # Enables OpenID Connect (OIDC) authentication
       contents: read
 
     steps:
-      # Step 1: Checkout the repo
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
-      # Step 2: Configure AWS Credentials (Using OIDC or Secrets)
-      - name: Configure AWS Credentials
+      - name: Configure AWS Credentials (eu-west-2)
         uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: arn:aws:iam::401907937551:role/OIDC_practice_cicd_pipeline  # Replace with your IAM role ARN
           aws-region: eu-west-2  # Adjust to your AWS region
 
-      # Step 3: Validate CloudFormation template
-      - name: Validate CloudFormation Template
+      - name: Deploy CloudFormation Stack
         run: |
-          aws cloudformation validate-template --template-body file://main.yml
-
-      # Step 4: Deploy CloudFormation stack to staging
-      - name: Deploy CloudFormation Stack (Staging)
-        run: |
+          echo "Deploying CloudFormation stack..."
           aws cloudformation deploy \
             --stack-name staging-cloudfront-stack \
             --template-file main.yml \
