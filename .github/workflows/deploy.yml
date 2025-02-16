@@ -21,14 +21,16 @@ jobs:
         run: |
           CERTIFICATE_ARN=$(aws acm list-certificates --region us-east-1 --query "CertificateSummaryList[?DomainName=='*.timjosmith.com'].CertificateArn" --output text)
           if [[ -z "$CERTIFICATE_ARN" ]]; then
-            echo "certificate_exists=false" >> $GITHUB_ENV
+            echo "certificate_exists=false"
+            echo "certificate_exists=false" >> "$GITHUB_OUTPUT"
           else
-            echo "certificate_exists=true" >> $GITHUB_ENV
+            echo "certificate_exists=true"
+            echo "certificate_exists=true" >> "$GITHUB_OUTPUT"
           fi
 
   deploy-acm:
     needs: check-acm
-    if: ${{ env.certificate_exists == 'false' }}  # Deploy only if ACM is missing
+    if: needs.check-acm.outputs.certificate_exists == 'false'  # ✅ Corrected condition
     runs-on: ubuntu-latest
     steps:
       - name: Configure AWS Credentials (us-east-1)
