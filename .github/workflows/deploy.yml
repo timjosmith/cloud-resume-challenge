@@ -14,6 +14,7 @@ jobs:
       - name: Configure AWS Credentials (us-east-1)
         uses: aws-actions/configure-aws-credentials@v2
         with:
+          role-to-assume: arn:aws:iam::401907937551:role/OIDC_practice_cicd_pipeline  # ✅ Added role assumption
           aws-region: us-east-1
 
       - name: Check if ACM Certificate Exists
@@ -30,12 +31,13 @@ jobs:
 
   deploy-acm:
     needs: check-acm
-    if: needs.check-acm.outputs.certificate_exists == 'false'  # ✅ Corrected condition
+    if: needs.check-acm.outputs.certificate_exists == 'false'  # ✅ Condition fixed
     runs-on: ubuntu-latest
     steps:
       - name: Configure AWS Credentials (us-east-1)
         uses: aws-actions/configure-aws-credentials@v2
         with:
+          role-to-assume: arn:aws:iam::401907937551:role/OIDC_practice_cicd_pipeline  # ✅ Added role assumption
           aws-region: us-east-1
 
       - name: Deploy ACM Certificate
@@ -63,6 +65,7 @@ jobs:
       - name: Configure AWS Credentials (eu-west-2)
         uses: aws-actions/configure-aws-credentials@v2
         with:
+          role-to-assume: arn:aws:iam::401907937551:role/OIDC_practice_cicd_pipeline  # ✅ Added role assumption
           aws-region: eu-west-2  # Adjust to your AWS region
 
       - name: Validate CloudFormation Template
@@ -81,7 +84,7 @@ jobs:
       - name: Configure AWS Credentials (eu-west-2)
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          role-to-assume: arn:aws:iam::401907937551:role/OIDC_practice_cicd_pipeline  # Replace with your IAM role ARN
+          role-to-assume: arn:aws:iam::401907937551:role/OIDC_practice_cicd_pipeline  # ✅ Role assumption already correct
           aws-region: eu-west-2  # Adjust to your AWS region
 
       - name: Deploy CloudFormation Stack
