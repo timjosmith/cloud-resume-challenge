@@ -11,6 +11,8 @@ jobs:
     outputs:
       certificate_exists: ${{ steps.check.outputs.certificate_exists }}
     steps:
+      - name: Debug AWS Identity
+        run: aws sts get-caller-identity
       - name: Configure AWS Credentials (us-east-1)
         uses: aws-actions/configure-aws-credentials@v2
         with:
