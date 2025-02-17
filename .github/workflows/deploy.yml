@@ -8,15 +8,14 @@ on:
 jobs:
   check-acm:
     runs-on: ubuntu-latest
-    outputs:
-      certificate_exists: ${{ steps.check.outputs.certificate_exists }}
+    permissions:
+      id-token: write  # ✅ REQUIRED for OIDC authentication
+      contents: read
     steps:
-      - name: Debug AWS Identity
-        run: aws sts get-caller-identity
       - name: Configure AWS Credentials (us-east-1)
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          role-to-assume: arn:aws:iam::401907937551:role/OIDC_practice_cicd_pipeline  # ✅ Added role assumption
+          role-to-assume: arn:aws:iam::401907937551:role/OIDC_practice_cicd_pipeline
           aws-region: us-east-1
 
       - name: Check if ACM Certificate Exists
