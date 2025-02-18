@@ -8,8 +8,11 @@ on:
 jobs:
   check-acm:
     runs-on: ubuntu-latest
+    outputs:
+      certificate_status: ${{ steps.check.outputs.certificate_status }}
+      certificate_arn: ${{ steps.check.outputs.certificate_arn }}
     permissions:
-      id-token: write  # ✅ REQUIRED for OIDC authentication
+      id-token: write
       contents: read
     steps:
       - name: Configure AWS Credentials (us-east-1)
@@ -18,56 +21,35 @@ jobs:
           role-to-assume: arn:aws:iam::401907937551:role/OIDC_practice_cicd_pipeline
           aws-region: us-east-1
 
-      - name: Check if ACM Certificate Exists
+      - name: Fetch ACM Certificate ARN
         id: check
         run: |
           CERTIFICATE_ARN=$(aws acm list-certificates --region us-east-1 --query "CertificateSummaryList[?DomainName=='*.timjosmith.com'].CertificateArn" --output text)
+          
           if [[ -z "$CERTIFICATE_ARN" ]]; then
-            echo "certificate_exists=false"
-            echo "certificate_exists=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "certificate_exists=true"
-            echo "certificate_exists=true" >> "$GITHUB_OUTPUT"
+            echo "❌ No ACM certificate found! Failing deployment."
+            exit 1
           fi
 
-  deploy-acm:
-    needs: check-acm
-    if: needs.check-acm.outputs.certificate_exists == 'false'  # ✅ Condition fixed
-    runs-on: ubuntu-latest
-    steps:
-      - name: Configure AWS Credentials (us-east-1)
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: arn:aws:iam::401907937551:role/OIDC_practice_cicd_pipeline  # ✅ Added role assumption
-          aws-region: us-east-1
+          echo "certificate_arn=$CERTIFICATE_ARN" >> "$GITHUB_OUTPUT"
 
-      - name: Deploy ACM Certificate
-        run: |
-          echo "Deploying ACM certificate..."
-          aws cloudformation deploy \
-            --template-file acm.yml \
-            --stack-name acm-stack \
-            --region us-east-1
+          STATUS=$(aws acm describe-certificate --certificate-arn "$CERTIFICATE_ARN" --region us-east-1 --query "Certificate.Status" --output text)
+          echo "certificate_status=$STATUS" >> "$GITHUB_OUTPUT"
 
-      - name: Wait for ACM Validation
-        run: |
-          echo "Waiting for ACM certificate validation..."
-          CERTIFICATE_ARN=$(aws acm list-certificates --region us-east-1 --query "CertificateSummaryList[?DomainName=='*.timjosmith.com'].CertificateArn" --output text)
-          while [[ $(aws acm describe-certificate --certificate-arn "$CERTIFICATE_ARN" --region us-east-1 --query "Certificate.Status" --output text) != "ISSUED" ]]; do
-            echo "Still waiting for validation..."
-            sleep 30
-          done
-          echo "Certificate validated!"
+          if [[ "$STATUS" != "ISSUED" ]]; then
+            echo "❌ ACM Certificate is not issued yet! Failing deployment."
+            exit 1
+          fi
 
   validate-cloudformation:
-    needs: [check-acm, deploy-acm]
+    needs: check-acm
     runs-on: ubuntu-latest
     steps:
       - name: Configure AWS Credentials (eu-west-2)
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          role-to-assume: arn:aws:iam::401907937551:role/OIDC_practice_cicd_pipeline  # ✅ Added role assumption
-          aws-region: eu-west-2  # Adjust to your AWS region
+          role-to-assume: arn:aws:iam::401907937551:role/OIDC_practice_cicd_pipeline
+          aws-region: eu-west-2
 
       - name: Validate CloudFormation Template
         run: |
@@ -75,24 +57,25 @@ jobs:
           aws cloudformation validate-template --template-body file://main.yml
 
   deploy-cloudfront:
-    needs: validate-cloudformation  # Ensure validation passes before deployment
+    needs: validate-cloudformation
     runs-on: ubuntu-latest
     permissions:
-      id-token: write  # Enables OpenID Connect (OIDC) authentication
+      id-token: write
       contents: read
-
     steps:
       - name: Configure AWS Credentials (eu-west-2)
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          role-to-assume: arn:aws:iam::401907937551:role/OIDC_practice_cicd_pipeline  # ✅ Role assumption already correct
-          aws-region: eu-west-2  # Adjust to your AWS region
+          role-to-assume: arn:aws:iam::401907937551:role/OIDC_practice_cicd_pipeline
+          aws-region: eu-west-2
 
-      - name: Deploy CloudFormation Stack
+      - name: Deploy CloudFormation Stack (CloudFront)
         run: |
           echo "Deploying CloudFormation stack..."
           aws cloudformation deploy \
             --stack-name staging-cloudfront-stack \
             --template-file main.yml \
             --capabilities CAPABILITY_NAMED_IAM \
-            --parameter-overrides DomainName=resume.staging.com
+            --parameter-overrides \
+              DomainName=resume.staging.com \
+              CertificateArn=${{ needs.check-acm.outputs.certificate_arn }}
