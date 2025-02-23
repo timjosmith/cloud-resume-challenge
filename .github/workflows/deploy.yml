@@ -51,13 +51,29 @@ jobs:
             echo "No failed change sets to delete."
           fi
 
-      # Step 6: Deploy CloudFormation Stack to Main
-      - name: Deploy CloudFormation Stack
+      # Step 6: Ensure CloudFormation Stack is Created or Updated
+      - name: Create or Update CloudFormation Stack
         run: |
-          aws cloudformation deploy \
-            --stack-name staging-cloudfront-stack \
-            --template-file main.yml \
-            --capabilities CAPABILITY_NAMED_IAM \
-            --parameter-overrides DomainName=resume.staging.com \
-            --region eu-west-2 \
-            --no-fail-on-empty-changeset
+          STACK_STATUS=$(aws cloudformation describe-stacks --stack-name staging-cloudfront-stack --region eu-west-2 --query "Stacks[0].StackStatus" --output text 2>/dev/null || echo "DOES_NOT_EXIST")
+
+          if [[ "$STACK_STATUS" == "DOES_NOT_EXIST" ]]; then
+            echo "🚀 Stack does not exist. Creating a new CloudFormation stack..."
+            aws cloudformation create-stack \
+              --stack-name staging-cloudfront-stack \
+              --template-body file://main.yml \
+              --capabilities CAPABILITY_NAMED_IAM \
+              --parameter-overrides DomainName=resume.staging.com \
+              --region eu-west-2
+
+            echo "⏳ Waiting for stack creation to complete..."
+            aws cloudformation wait stack-create-complete --stack-name staging-cloudfront-stack --region eu-west-2
+          else
+            echo "✅ Stack already exists. Updating stack..."
+            aws cloudformation deploy \
+              --stack-name staging-cloudfront-stack \
+              --template-file main.yml \
+              --capabilities CAPABILITY_NAMED_IAM \
+              --parameter-overrides DomainName=resume.staging.com \
+              --region eu-west-2 \
+              --no-fail-on-empty-changeset
+          fi
