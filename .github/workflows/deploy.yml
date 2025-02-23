@@ -17,19 +17,41 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      # Step 2: Configure AWS Credentials (Using OIDC or Secrets)
+      # Step 2: Configure AWS Credentials (Using OIDC)
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v3
         with:
-          role-to-assume: arn:aws:iam::401907937551:role/OIDC_practice_cicd_pipeline  # Replace with your IAM role ARN
-          aws-region: eu-west-2  # Adjust to your AWS region
+          role-to-assume: arn:aws:iam::401907937551:role/OIDC_practice_cicd_pipeline  # ✅ Replace with your IAM role ARN
+          aws-region: eu-west-2  # ✅ Ensure the correct region is used
 
-      # Step 3: Validate CloudFormation template
+      # Step 3: Debug CloudFormation Stack Status (Prevents Deployment Stalls)
+      - name: Debug CloudFormation Stack
+        run: |
+          echo "Checking stack status..."
+          aws cloudformation describe-stacks --stack-name staging-cloudfront-stack --region eu-west-2 || echo "No existing stack found."
+
+          echo "Checking existing change sets..."
+          aws cloudformation list-change-sets --stack-name staging-cloudfront-stack --region eu-west-2 || echo "No change sets found."
+
+      # Step 4: Validate CloudFormation Template
       - name: Validate CloudFormation Template
         run: |
           aws cloudformation validate-template --template-body file://main.yml
 
-      # Step 4: Deploy CloudFormation stack to main
+      # Step 5: Cleanup Any Failed Change Sets Before Deployment
+      - name: Cleanup Old Change Sets
+        run: |
+          CHANGE_SETS=$(aws cloudformation list-change-sets --stack-name staging-cloudfront-stack --region eu-west-2 --query "Summaries[?ExecutionStatus=='FAILED'].ChangeSetName" --output text)
+          if [[ ! -z "$CHANGE_SETS" ]]; then
+            echo "Deleting failed change sets..."
+            for cs in $CHANGE_SETS; do
+              aws cloudformation delete-change-set --stack-name staging-cloudfront-stack --change-set-name "$cs" --region eu-west-2
+            done
+          else
+            echo "No failed change sets to delete."
+          fi
+
+      # Step 6: Deploy CloudFormation Stack to Main
       - name: Deploy CloudFormation Stack
         run: |
           aws cloudformation deploy \
@@ -39,6 +61,3 @@ jobs:
             --parameter-overrides DomainName=resume.staging.com \
             --region eu-west-2 \
             --no-fail-on-empty-changeset
-
-
-
