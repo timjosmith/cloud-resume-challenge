@@ -30,11 +30,14 @@ jobs:
           aws cloudformation validate-template --template-body file://main.yml
 
       # Step 4: Deploy CloudFormation stack to main
-      - name: Deploy CloudFormation Stack (Main)
+      - name: Deploy CloudFormation Stack (Automated)
         run: |
           aws cloudformation deploy \
             --stack-name staging-cloudfront-stack \
             --template-file main.yml \
             --capabilities CAPABILITY_NAMED_IAM \
-            --parameter-overrides DomainName=resume.staging.com
+            --parameter-overrides DomainName=resume.staging.com \
+            --no-fail-on-empty-changeset  # ✅ Prevents errors if no updates are required
+
+
 
