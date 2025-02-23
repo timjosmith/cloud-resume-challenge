@@ -1,4 +1,4 @@
-name: Deploy CloudFormation Stack to Main Branch
+name: Deploy CloudFormation Stack to Main
 
 on:
   push:
@@ -24,38 +24,21 @@ jobs:
           role-to-assume: arn:aws:iam::401907937551:role/OIDC_practice_cicd_pipeline  # ✅ Replace with your IAM role ARN
           aws-region: eu-west-2  # ✅ Ensure the correct region is used
 
-      # Step 3: Debug CloudFormation Stack Status (Prevents Deployment Stalls)
-      - name: Debug CloudFormation Stack
+      # Step 3: Check If Stack Exists
+      - name: Check If Stack Exists
+        id: check_stack
         run: |
-          echo "Checking stack status..."
-          aws cloudformation describe-stacks --stack-name staging-cloudfront-stack --region eu-west-2 || echo "No existing stack found."
-
-          echo "Checking existing change sets..."
-          aws cloudformation list-change-sets --stack-name staging-cloudfront-stack --region eu-west-2 || echo "No change sets found."
+          STACK_STATUS=$(aws cloudformation describe-stacks --stack-name staging-cloudfront-stack --region eu-west-2 --query "Stacks[0].StackStatus" --output text 2>/dev/null || echo "DOES_NOT_EXIST")
+          echo "STACK_STATUS=$STACK_STATUS" >> $GITHUB_ENV
 
       # Step 4: Validate CloudFormation Template
       - name: Validate CloudFormation Template
         run: |
           aws cloudformation validate-template --template-body file://main.yml
 
-      # Step 5: Cleanup Any Failed Change Sets Before Deployment
-      - name: Cleanup Old Change Sets
-        run: |
-          CHANGE_SETS=$(aws cloudformation list-change-sets --stack-name staging-cloudfront-stack --region eu-west-2 --query "Summaries[?ExecutionStatus=='FAILED'].ChangeSetName" --output text)
-          if [[ ! -z "$CHANGE_SETS" ]]; then
-            echo "Deleting failed change sets..."
-            for cs in $CHANGE_SETS; do
-              aws cloudformation delete-change-set --stack-name staging-cloudfront-stack --change-set-name "$cs" --region eu-west-2
-            done
-          else
-            echo "No failed change sets to delete."
-          fi
-
-      # Step 6: Ensure CloudFormation Stack is Created or Updated
+      # Step 5: Create or Update CloudFormation Stack
       - name: Create or Update CloudFormation Stack
         run: |
-          STACK_STATUS=$(aws cloudformation describe-stacks --stack-name staging-cloudfront-stack --region eu-west-2 --query "Stacks[0].StackStatus" --output text 2>/dev/null || echo "DOES_NOT_EXIST")
-
           if [[ "$STACK_STATUS" == "DOES_NOT_EXIST" ]]; then
             echo "🚀 Stack does not exist. Creating a new CloudFormation stack..."
             aws cloudformation create-stack \
