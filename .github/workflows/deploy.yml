@@ -27,7 +27,7 @@ jobs:
       # Step 3: Validate CloudFormation template
       - name: Validate CloudFormation Template
         run: |
-          aws cloudformation validate-template --template-body file://deploy.yml
+          aws cloudformation validate-template --template-body file://main.yml
 
       # Step 4: Deploy CloudFormation stack to staging
       - name: Deploy CloudFormation Stack (Staging)
