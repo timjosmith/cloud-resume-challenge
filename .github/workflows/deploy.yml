@@ -28,13 +28,17 @@ jobs:
       - name: Check If Stack Exists
         id: check_stack
         run: |
+          echo "🔍 Checking if CloudFormation stack exists..."
           STACK_STATUS=$(aws cloudformation describe-stacks --stack-name staging-cloudfront-stack --region eu-west-2 --query "Stacks[0].StackStatus" --output text 2>/dev/null || echo "DOES_NOT_EXIST")
           echo "STACK_STATUS=$STACK_STATUS" >> $GITHUB_ENV
+          echo "✅ Stack Status: $STACK_STATUS"
 
       # Step 4: Validate CloudFormation Template
       - name: Validate CloudFormation Template
         run: |
+          echo "🔍 Validating CloudFormation template..."
           aws cloudformation validate-template --template-body file://main.yml
+          echo "✅ Template validation passed."
 
       # Step 5: Create or Update CloudFormation Stack
       - name: Create or Update CloudFormation Stack
@@ -45,11 +49,12 @@ jobs:
               --stack-name staging-cloudfront-stack \
               --template-body file://main.yml \
               --capabilities CAPABILITY_NAMED_IAM \
-              --parameter-overrides DomainName=resume.staging.com \
+              --parameters ParameterKey=DomainName,ParameterValue=resume.staging.com \
               --region eu-west-2
 
             echo "⏳ Waiting for stack creation to complete..."
             aws cloudformation wait stack-create-complete --stack-name staging-cloudfront-stack --region eu-west-2
+            echo "✅ Stack created successfully."
           else
             echo "✅ Stack already exists. Updating stack..."
             aws cloudformation deploy \
@@ -59,4 +64,5 @@ jobs:
               --parameter-overrides DomainName=resume.staging.com \
               --region eu-west-2 \
               --no-fail-on-empty-changeset
+            echo "✅ Stack updated successfully."
           fi
