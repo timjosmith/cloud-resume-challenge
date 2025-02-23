@@ -29,12 +29,12 @@ jobs:
         run: |
           aws cloudformation validate-template --template-body file://main.yml
 
-      # Step 4: Deploy CloudFormation stack to staging
-      - name: Deploy CloudFormation Stack (Staging)
+      # Step 4: Deploy CloudFormation stack to main
+      - name: Deploy CloudFormation Stack (Main)
         run: |
           aws cloudformation deploy \
             --stack-name staging-cloudfront-stack \
-            --template-file cloudformation.yaml \
+            --template-file main.yml \
             --capabilities CAPABILITY_NAMED_IAM \
             --parameter-overrides DomainName=resume.staging.com
 
