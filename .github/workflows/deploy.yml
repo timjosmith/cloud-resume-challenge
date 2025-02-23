@@ -1,4 +1,4 @@
-name: Deploy CloudFormation Stack to Main
+name: Deploy CloudFormation Stack to Main Branch
 
 on:
   push:
