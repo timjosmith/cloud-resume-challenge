@@ -59,7 +59,8 @@ Resources:
           DefaultTTL: 86400
           MaxTTL: 31536000
         ViewerCertificate:
-          AcmCertificateArn: !ImportValue MySSLCertificateArn
+          AcmCertificateArn: "arn:aws:acm:us-east-1:123456789012:certificate/abcd1234-efgh-5678-ijkl-90mnopqrst"
+
           SslSupportMethod: sni-only
         Aliases:
           - resume.staging.com
