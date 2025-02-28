@@ -1,24 +1,14 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: ACM Certificate for CloudFront in us-east-1
-
-Parameters:
-  DomainName:
-    Type: String
-    Default: "*.timjosmith.com"
+Description: "CloudFormation Template for ACM Certificate with Automated Route 53 DNS Validation"
 
 Resources:
   SSLCertificate:
     Type: AWS::CertificateManager::Certificate
     Properties:
-      DomainName: !Ref DomainName
-      ValidationMethod: DNS
+      DomainName: "staging.timjosmith.com"
       DomainValidationOptions:
-        - DomainName: !Ref DomainName
-          HostedZoneId: Z07023503P1PJJX3TKC0  # Replace with correct Route 53 Hosted Zone ID
+        - DomainName: "staging.timjosmith.com"
+          HostedZoneId: Z07023503P1PJJX3TKC0  # ✅ Ensure correct Hosted Zone ID
+      ValidationMethod: DNS
 
-Outputs:
-  CertificateArn:
-    Description: The ARN of the ACM certificate in us-east-1
-    Value: !Ref SSLCertificate
-    Export:
-      Name: MySSLCertificateArn
+
