@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "CloudFormation Template for ACM Certificate with Automated Route 53 DNS Validation"
+Description: "CloudFormation Template using AWS Certificate Manager (ACM) with Automated Route 53 DNS Validation"
 
 Resources:
   SSLCertificate:
